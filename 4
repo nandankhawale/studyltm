@@ -1,0 +1,130 @@
+import streamlit as st
+from snowflake.snowpark.context import get_active_session
+
+# Get Snowflake session
+session = get_active_session()
+
+# Page configuration
+st.set_page_config(
+    page_title="Coffee Sales Dashboard",
+    page_icon="☕",
+    layout="wide"
+)
+
+# Title
+st.title("☕ Coffee Sales Dashboard")
+st.write("Coffee sales performance overview")
+
+# =========================================================
+# 1. TOTAL REVENUE
+# =========================================================
+
+total_revenue = session.sql("""
+    SELECT SUM(QUANTITY * PRICE) AS TOTAL_REVENUE
+    FROM COFFEE_LAB.DATA.SALES
+""").collect()[0]["TOTAL_REVENUE"]
+
+st.metric(
+    "💰 Total Revenue",
+    f"${total_revenue:,.2f}"
+)
+
+# =========================================================
+# 2. REVENUE BY PRODUCT
+# =========================================================
+
+st.subheader("📦 Revenue by Product")
+
+product_revenue = session.sql("""
+    SELECT
+        PRODUCT,
+        SUM(QUANTITY * PRICE) AS REVENUE
+    FROM COFFEE_LAB.DATA.SALES
+    GROUP BY PRODUCT
+    ORDER BY REVENUE DESC
+""").to_pandas()
+
+st.bar_chart(
+    product_revenue,
+    x="PRODUCT",
+    y="REVENUE"
+)
+
+# =========================================================
+# 3. REVENUE BY STORE
+# =========================================================
+
+st.subheader("🏪 Revenue by Store")
+
+store_revenue = session.sql("""
+    SELECT
+        STORE,
+        SUM(QUANTITY * PRICE) AS REVENUE
+    FROM COFFEE_LAB.DATA.SALES
+    GROUP BY STORE
+    ORDER BY REVENUE DESC
+""").to_pandas()
+
+st.bar_chart(
+    store_revenue,
+    x="STORE",
+    y="REVENUE"
+)
+
+# =========================================================
+# 4. TRANSACTIONS BY STORE
+# =========================================================
+
+st.subheader("🧾 Transactions by Store")
+
+transactions = session.sql("""
+    SELECT
+        STORE,
+        COUNT(*) AS TRANSACTIONS
+    FROM COFFEE_LAB.DATA.SALES
+    GROUP BY STORE
+    ORDER BY TRANSACTIONS DESC
+""").to_pandas()
+
+st.bar_chart(
+    transactions,
+    x="STORE",
+    y="TRANSACTIONS"
+)
+
+# =========================================================
+# 5. AVERAGE CUSTOMER AGE
+# =========================================================
+
+st.subheader("👥 Customer Demographics")
+
+avg_age = session.sql("""
+    SELECT AVG(CUSTOMER_AGE) AS AVG_AGE
+    FROM COFFEE_LAB.DATA.SALES
+""").collect()[0]["AVG_AGE"]
+
+st.metric(
+    "Average Customer Age",
+    f"{avg_age:.1f} years"
+)
+
+# =========================================================
+# 6. DAILY SALES
+# =========================================================
+
+st.subheader("📈 Daily Sales")
+
+daily_sales = session.sql("""
+    SELECT
+        SALE_DATE,
+        SUM(QUANTITY * PRICE) AS REVENUE
+    FROM COFFEE_LAB.DATA.SALES
+    GROUP BY SALE_DATE
+    ORDER BY SALE_DATE
+""").to_pandas()
+
+st.line_chart(
+    daily_sales,
+    x="SALE_DATE",
+    y="REVENUE"
+)
