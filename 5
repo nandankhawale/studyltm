@@ -1,0 +1,202 @@
+import streamlit as st
+from snowflake.snowpark.context import get_active_session
+
+# =========================================================
+# SNOWFLAKE SESSION
+# =========================================================
+
+session = get_active_session()
+
+# =========================================================
+# PAGE CONFIGURATION
+# =========================================================
+
+st.set_page_config(
+    page_title="Logistics Performance Dashboard",
+    page_icon="🚚",
+    layout="wide"
+)
+
+# =========================================================
+# TITLE
+# =========================================================
+
+st.title("🚚 Logistics Performance Dashboard")
+st.write("Delivery performance and logistics analysis")
+
+# =========================================================
+# 1. TOTAL ORDERS & ON-TIME RATE
+# =========================================================
+
+summary = session.sql("""
+    SELECT
+        COUNT(*) AS TOTAL_ORDERS,
+        ROUND(
+            100.0 * AVG(
+                CASE
+                    WHEN IS_ONTIME = 'Yes' THEN 1.0
+                    ELSE 0.0
+                END
+            ),
+            1
+        ) AS ONTIME_RATE
+    FROM LOGISTICS_LAB.DATA.DELIVERIES
+""").collect()[0]
+
+total_orders = summary["TOTAL_ORDERS"]
+ontime_rate = summary["ONTIME_RATE"]
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.metric(
+        "📦 Total Orders",
+        f"{total_orders:,}"
+    )
+
+with col2:
+    st.metric(
+        "⏱️ Overall On-Time Rate",
+        f"{ontime_rate:.1f}%"
+    )
+
+# =========================================================
+# 2. PERFORMANCE BY CITY
+# =========================================================
+
+st.subheader("🏙️ Performance by City")
+
+city_data = session.sql("""
+    SELECT
+        CITY,
+        COUNT(*) AS TOTAL_DELIVERIES,
+        ROUND(AVG(DELIVERY_TIME_MIN), 1) AS AVG_MINUTES,
+        ROUND(
+            100.0 * AVG(
+                CASE
+                    WHEN IS_ONTIME = 'Yes' THEN 1.0
+                    ELSE 0.0
+                END
+            ),
+            1
+        ) AS ONTIME_PCT
+    FROM LOGISTICS_LAB.DATA.DELIVERIES
+    GROUP BY CITY
+    ORDER BY ONTIME_PCT DESC
+""").to_pandas()
+
+st.bar_chart(
+    city_data,
+    x="CITY",
+    y="ONTIME_PCT"
+)
+
+st.dataframe(city_data)
+
+# =========================================================
+# 3. VEHICLE TYPE PERFORMANCE
+# =========================================================
+
+st.subheader("🚗 Vehicle Type Performance")
+
+vehicle_data = session.sql("""
+    SELECT
+        VEHICLE_TYPE,
+        ROUND(AVG(DELIVERY_TIME_MIN), 1) AS AVG_MINUTES,
+        ROUND(AVG(DISTANCE_KM), 1) AS AVG_DISTANCE_KM,
+        ROUND(
+            100.0 * AVG(
+                CASE
+                    WHEN IS_ONTIME = 'Yes' THEN 1.0
+                    ELSE 0.0
+                END
+            ),
+            1
+        ) AS ONTIME_PCT
+    FROM LOGISTICS_LAB.DATA.DELIVERIES
+    GROUP BY VEHICLE_TYPE
+    ORDER BY ONTIME_PCT DESC
+""").to_pandas()
+
+st.bar_chart(
+    vehicle_data,
+    x="VEHICLE_TYPE",
+    y="ONTIME_PCT"
+)
+
+st.dataframe(vehicle_data)
+
+# =========================================================
+# 4. TOP 10 BEST-RATED DELIVERIES
+# =========================================================
+
+st.subheader("⭐ Top 10 Best-Rated Deliveries")
+
+top_deliveries = session.sql("""
+    SELECT
+        ORDER_ID,
+        DRIVER_RATING,
+        CITY,
+        VEHICLE_TYPE,
+        IS_ONTIME
+    FROM LOGISTICS_LAB.DATA.DELIVERIES
+    ORDER BY DRIVER_RATING DESC
+    LIMIT 10
+""").to_pandas()
+
+st.dataframe(top_deliveries)
+
+# =========================================================
+# 5. DAILY DELIVERY VOLUME
+# =========================================================
+
+st.subheader("📈 Daily Delivery Volume")
+
+daily_data = session.sql("""
+    SELECT
+        ORDER_DATE,
+        COUNT(*) AS DELIVERIES_PER_DAY
+    FROM LOGISTICS_LAB.DATA.DELIVERIES
+    GROUP BY ORDER_DATE
+    ORDER BY ORDER_DATE
+""").to_pandas()
+
+st.line_chart(
+    daily_data,
+    x="ORDER_DATE",
+    y="DELIVERIES_PER_DAY"
+)
+
+# =========================================================
+# ADDITIONAL SUMMARY
+# =========================================================
+
+st.subheader("📊 Overall Delivery Statistics")
+
+stats = session.sql("""
+    SELECT
+        ROUND(AVG(DELIVERY_TIME_MIN), 1) AS AVG_DELIVERY_TIME,
+        ROUND(AVG(DISTANCE_KM), 1) AS AVG_DISTANCE,
+        ROUND(AVG(DRIVER_RATING), 2) AS AVG_RATING
+    FROM LOGISTICS_LAB.DATA.DELIVERIES
+""").collect()[0]
+
+c1, c2, c3 = st.columns(3)
+
+with c1:
+    st.metric(
+        "Average Delivery Time",
+        f"{stats['AVG_DELIVERY_TIME']:.1f} min"
+    )
+
+with c2:
+    st.metric(
+        "Average Distance",
+        f"{stats['AVG_DISTANCE']:.1f} km"
+    )
+
+with c3:
+    st.metric(
+        "Average Driver Rating",
+        f"{stats['AVG_RATING']:.2f}"
+    )
