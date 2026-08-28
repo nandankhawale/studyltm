@@ -1,0 +1,121 @@
+import streamlit as st
+from snowflake.snowpark.context import get_active_session
+
+# Get Snowflake session
+session = get_active_session()
+
+st.set_page_config(
+    page_title="Coffee Sales Dashboard",
+    layout="wide"
+)
+
+st.title("☕ Coffee Sales Dashboard")
+st.write("Coffee sales performance overview")
+
+# -------------------------
+# Total Revenue
+# -------------------------
+
+revenue = session.sql("""
+    SELECT SUM(REVENUE) AS TOTAL_REVENUE
+    FROM SALES
+""").collect()[0]["TOTAL_REVENUE"]
+
+st.metric("💰 Total Revenue", f"${revenue:,.2f}")
+
+# -------------------------
+# Revenue by Product
+# -------------------------
+
+st.subheader("Revenue by Product")
+
+product_data = session.sql("""
+    SELECT
+        PRODUCT,
+        SUM(REVENUE) AS TOTAL_REVENUE
+    FROM SALES
+    GROUP BY PRODUCT
+    ORDER BY TOTAL_REVENUE DESC
+""").to_pandas()
+
+st.bar_chart(
+    product_data,
+    x="PRODUCT",
+    y="TOTAL_REVENUE"
+)
+
+# -------------------------
+# Revenue by Store
+# -------------------------
+
+st.subheader("Revenue by Store")
+
+store_revenue = session.sql("""
+    SELECT
+        STORE,
+        SUM(REVENUE) AS TOTAL_REVENUE
+    FROM SALES
+    GROUP BY STORE
+    ORDER BY TOTAL_REVENUE DESC
+""").to_pandas()
+
+st.bar_chart(
+    store_revenue,
+    x="STORE",
+    y="TOTAL_REVENUE"
+)
+
+# -------------------------
+# Transactions by Store
+# -------------------------
+
+st.subheader("Transactions by Store")
+
+transactions = session.sql("""
+    SELECT
+        STORE,
+        COUNT(*) AS TRANSACTIONS
+    FROM SALES
+    GROUP BY STORE
+    ORDER BY TRANSACTIONS DESC
+""").to_pandas()
+
+st.bar_chart(
+    transactions,
+    x="STORE",
+    y="TRANSACTIONS"
+)
+
+# -------------------------
+# Average Customer Age
+# -------------------------
+
+st.subheader("Average Customer Age")
+
+avg_age = session.sql("""
+    SELECT AVG(CUSTOMER_AGE) AS AVG_AGE
+    FROM SALES
+""").collect()[0]["AVG_AGE"]
+
+st.metric("👥 Average Customer Age", f"{avg_age:.1f} years")
+
+# -------------------------
+# Daily Sales
+# -------------------------
+
+st.subheader("Daily Sales")
+
+daily_sales = session.sql("""
+    SELECT
+        SALE_DATE,
+        SUM(REVENUE) AS TOTAL_REVENUE
+    FROM SALES
+    GROUP BY SALE_DATE
+    ORDER BY SALE_DATE
+""").to_pandas()
+
+st.line_chart(
+    daily_sales,
+    x="SALE_DATE",
+    y="TOTAL_REVENUE"
+)
