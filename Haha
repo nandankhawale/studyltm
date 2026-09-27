@@ -1,0 +1,156 @@
+SQL Interview Questions (Freshers – Data Engineering)
+No.	Question	One-Line SME-Style Answer
+1	What is the difference between INNER JOIN and LEFT JOIN?	INNER JOIN returns matching rows only, while LEFT JOIN returns all rows from the left table and matching ones from the right.
+2	What is a Primary Key?	A Primary Key uniquely identifies each row in a table and doesn’t allow NULLs.
+3	Difference between WHERE and HAVING clause?	WHERE filters rows before aggregation, HAVING filters after aggregation.
+4	What is a Subquery?	A subquery is a query nested inside another SQL query.
+5	What is a CTE (Common Table Expression)?	A CTE is a temporary result set that can be referred to within a WITH clause.
+6	How does GROUP BY work?	It groups rows with the same values into summary rows like count, sum, etc.
+7	What is a Window Function?	It performs calculations across rows related to the current row without collapsing them.
+8	Difference between RANK() and DENSE_RANK()?	RANK() skips ranks on ties; DENSE_RANK() does not.
+9	What is normalization?	Organizing data to reduce redundancy and improve integrity.
+10	What is denormalization?	Combining tables to improve read performance at the cost of redundancy.
+11	What is a foreign key?	A foreign key is a field that links to the primary key of another table.
+12	How to find duplicates in a table?	Use GROUP BY with HAVING COUNT(*) > 1.
+13	What is the use of LIMIT or TOP?	Restricts the number of rows returned in a query result.
+14	How to calculate running totals?	Use SUM() OVER (ORDER BY col) with window functions.
+15	What is NULL in SQL?	A NULL represents missing or unknown data.
+16	What does COALESCE() do?	Returns the first non-null value in the list.
+17	What is the difference between UNION and UNION ALL?	UNION removes duplicates; UNION ALL keeps all records.
+18	What are indexes in SQL?	Indexes speed up data retrieval but can slow down insert/update operations.
+19	Difference between DELETE and TRUNCATE?	DELETE is row-by-row with rollback; TRUNCATE is faster and cannot be rolled back.
+20	What is the default sorting order in SQL?	ORDER BY defaults to ascending (ASC).
+21	How to convert date formats in SQL?	Use CAST(), CONVERT(), or database-specific functions.
+22	What is the difference between IN and EXISTS?	IN checks a list, EXISTS checks for row existence via a subquery.
+23	What is a view?	A virtual table defined by a SQL query; doesn't store data itself.
+24	Can we index a view?	Only indexed views (materialized views) can have indexes.
+25	What are ACID properties?	Atomicity, Consistency, Isolation, Durability – ensure reliable transactions.
+
+
+Python Interview Questions (Freshers – Data Engineering)
+No.	Question	One-Line SME-Style Answer
+1	What is the difference between list and tuple?	Lists are mutable; tuples are immutable.
+2	What is a dictionary in Python?	A collection of key-value pairs, defined with {}.
+3	How is memory managed in Python?	Using reference counting and a cyclic garbage collector.
+4	What is the use of *args and **kwargs?	*args for variable positional args, **kwargs for keyword args.
+5	What is a lambda function?	A small anonymous function defined using the lambda keyword.
+6	Difference between is and ==?	is checks identity; == checks value equality.
+7	What are Python data types used in data engineering?	int, float, str, list, dict, set, datetime.
+8	How to read a CSV file in Python?	Using pandas.read_csv('file.csv').
+9	How to handle missing values in pandas?	Use df.fillna(), df.dropna(), or df.isnull().
+10	What is a generator?	A function that returns an iterator using yield instead of return.
+11	What is a list comprehension?	A concise way to create lists using [expr for item in iterable].
+12	What is the difference between map() and filter()?	map() transforms items; filter() selects items.
+13	What are decorators in Python?	Functions that modify the behavior of another function.
+14	What is the difference between deepcopy and copy?	copy() makes shallow copy; deepcopy() recursively copies nested objects.
+15	How to handle exceptions in Python?	Using try, except, finally, and raise.
+16	What are modules and packages in Python?	Modules are Python files; packages are folders with __init__.py.
+17	What is the use of with statement?	It simplifies resource management using context managers.
+18	How to connect to a database in Python?	Use libraries like sqlite3, sqlalchemy, or psycopg2.
+19	Difference between append() and extend()?	append() adds an item; extend() adds multiple items from an iterable.
+20	What are Python’s key libraries for data engineering?	pandas, numpy, sqlalchemy, pyarrow, pyspark.
+21	How to convert timestamp to date in pandas?	Use pd.to_datetime(col).dt.date.
+22	What is duck typing in Python?	Python checks method availability, not type, at runtime.
+23	How to serialize objects in Python?	Using the pickle module.
+24	What are dataframes in pandas?	2D labeled data structures similar to Excel or SQL tables.
+25	What is the use of enumerate()?	Adds a counter to an iterable and returns a tuple of index and item.
+
+
+Here are the naming reasons and stories behind Hadoop, Spark, Hive, and major AWS services — based on information from original creators, project documentation, and industry usage:
+
+🐘 Hadoop
+Naming Reason: Named after the toy elephant of Doug Cutting's son.
+
+SME Terminology:
+
+“Hadoop was named for simplicity and memorability; the yellow toy elephant gave it a non-threatening and playful identity. It does not stand for anything.”
+
+⚡ Apache Spark
+Naming Reason: Chosen to represent fast, in-memory cluster computing.
+
+SME Terminology:
+
+“Spark implies speed and brilliance — suitable for a fast, in-memory data processing engine that 'sparks' computation across clusters.”
+
+🐝 Apache Hive
+Naming Reason: Represents a bee hive — a well-organized, structured, and efficient data warehouse system.
+
+SME Terminology:
+
+“Hive was named to symbolize a hive of activity and structure, mirroring its role in managing structured queries over large datasets on Hadoop.”
+
+☁️ AWS Services Naming Reasons
+Service	Name Origin	SME-Friendly Explanation
+S3 (Simple Storage Service)	Simplicity in object storage	"S3 stands for Simple Storage Service — emphasizing its minimal API design and infinite scalability."
+EC2 (Elastic Compute Cloud)	Elastic computing power	"EC2 reflects the elastic nature of compute capacity in the cloud, scalable on demand."
+Lambda	Greek letter λ used in anonymous functions	"Lambda signifies event-driven, serverless compute functions, rooted in functional programming."
+Redshift	A shift from Oracle (red branding)	"Redshift hints at shifting workloads away from traditional (Oracle/red) data warehouses to the cloud."
+Glue	Integrates ETL jobs	"Glue ties together data sources and manages schema transformation and job orchestration — hence the name."
+Athena	Greek goddess of wisdom	"Athena reflects querying power and insight — as it enables direct SQL querying on S3 with no infrastructure."
+EMR (Elastic MapReduce)	Elastic version of MapReduce	"EMR is a managed Hadoop/Spark service — the ‘Elastic’ prefix denotes dynamic scaling."
+Kinesis	From Greek ‘kinesis’ = movement	"Kinesis streams large volumes of real-time data — the name reflects movement and flow."
+CloudWatch	Monitoring and alerts	"CloudWatch watches cloud metrics and logs, providing observability and alerting."
+Step Functions	Workflow orchestration	"Named for step-by-step execution of serverless workflows — each function is a step in the sequence."
+
+
+
+HADOOP – 20 Interview Questions with SME-style One-Liners
+What is Hadoop?
+→ Hadoop is a distributed processing framework based on HDFS and MapReduce that enables fault-tolerant, scalable big data processing.
+
+Explain HDFS.
+→ HDFS (Hadoop Distributed File System) stores data across multiple nodes using block-level replication for fault tolerance.
+
+What is the default block size in HDFS?
+→ The default block size is 128MB (Hadoop 2.x+), which optimizes throughput for large files.
+
+How is fault tolerance achieved in HDFS?
+→ Through replication—each block is replicated across DataNodes (default replication factor = 3).
+
+What is a NameNode?
+→ The master metadata manager in HDFS that maintains the namespace and block locations.
+
+What is a DataNode?
+→ Worker node in HDFS that stores actual data blocks and responds to the NameNode's read/write requests.
+
+What happens if NameNode fails?
+→ Hadoop becomes inoperable; High Availability (HA) setup with standby NameNode mitigates this risk.
+
+What is a Secondary NameNode?
+→ A checkpointing node that merges edit logs with the FSImage but doesn’t replace the NameNode on failure.
+
+What is MapReduce?
+→ A programming model for parallel data processing using map and reduce tasks across a distributed cluster.
+
+What is a Combiner?
+→ An optional mini-reducer that performs local aggregation before sending data to the reducer.
+
+What is the role of JobTracker?
+→ Manages resource allocation and task scheduling (deprecated in YARN-based Hadoop).
+
+How does YARN work in Hadoop 2.x?
+→ YARN decouples resource management and job scheduling using ResourceManager and NodeManager.
+
+What is speculative execution?
+→ Running duplicate tasks on different nodes to counter slow task execution (stragglers).
+
+Difference between Hadoop 1 and Hadoop 2?
+→ Hadoop 2 uses YARN for better resource management and supports non-MapReduce applications.
+
+What is rack awareness?
+→ A topology strategy where data is replicated across different racks for higher fault tolerance.
+
+How do you handle small files in HDFS?
+→ Use HAR (Hadoop Archives) or sequence files to reduce metadata overhead.
+
+What is a SequenceFile?
+→ A flat file containing binary key-value pairs, optimized for I/O efficiency in MapReduce jobs.
+
+How is data locality important in Hadoop?
+→ Processing tasks are moved to the node containing the data to minimize network IO (data locality principle).
+
+How does Hadoop ensure data integrity?
+→ By using CRC (cyclic redundancy check) to detect and recover from corrupted data blocks.
+
+What are counters in MapReduce?
+→ Custom metrics used to track intermediate statistics during job execution (e.g., bad records).
