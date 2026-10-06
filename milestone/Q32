@@ -1,0 +1,95 @@
+from typing import Tuple, List
+from pyspark.sql import SparkSession, DataFrame
+from pyspark.sql.types import *
+from pyspark.sql.functions import *
+from pyspark.sql.window import Window
+
+
+def define_observation_schema() -> StructType:
+    return StructType([
+        StructField("observation_id", StringType(), True),
+        StructField("patient_id", StringType(), True),
+        StructField("reading_ts", StringType(), True),
+        StructField("systolic", StringType(), True),
+        StructField("heart_rate", StringType(), True),
+        StructField("device_status", StringType(), True)
+    ])
+
+
+def load_monitoring_data(
+    spark: SparkSession,
+    observations_path: str,
+    patients_path: str,
+    schema: StructType
+) -> tuple:
+
+    observations_df = (
+        spark.read
+        .option("header", True)
+        .schema(schema)
+        .csv(observations_path)
+    )
+
+    observations_df = (
+        observations_df
+        .withColumn("reading_ts", to_timestamp(col("reading_ts")))
+        .withColumn("systolic", col("systolic").cast(IntegerType()))
+        .withColumn("heart_rate", col("heart_rate").cast(IntegerType()))
+    )
+
+    patients_df = (
+        spark.read
+        .option("header", True)
+        .option("inferSchema", True)
+        .csv(patients_path)
+    )
+
+    return observations_df, patients_df
+
+
+def classify_readings(df: DataFrame) -> DataFrame:
+    return df.withColumn(
+        "alert_level",
+        when(
+            (col("systolic") >= 180) |
+            (col("heart_rate") >= 130),
+            lit("Critical")
+        )
+        .when(
+            (col("systolic") >= 140) |
+            (col("heart_rate") >= 100),
+            lit("Warning")
+        )
+        .otherwise(lit("Normal"))
+    )
+
+
+def latest_reading_per_patient(df: DataFrame) -> DataFrame:
+    window_spec = (
+        Window
+        .partitionBy("patient_id")
+        .orderBy(col("reading_ts").desc())
+    )
+
+    return (
+        df.withColumn("row_num", row_number().over(window_spec))
+        .filter(col("row_num") == 1)
+        .drop("row_num")
+    )
+
+
+def care_team_alert_summary(
+    observations_df: DataFrame,
+    patients_df: DataFrame
+) -> DataFrame:
+
+    return (
+        observations_df
+        .join(patients_df, on="patient_id", how="inner")
+        .filter(col("alert_level").isin("Critical", "Warning"))
+        .groupBy("care_team")
+        .agg(
+            count("observation_id").alias("alert_count"),
+            avg("heart_rate").alias("avg_heart_rate")
+        )
+    )
