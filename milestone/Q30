@@ -1,0 +1,85 @@
+from typing import Tuple, List
+from pyspark.sql import SparkSession, DataFrame
+from pyspark.sql.types import *
+from pyspark.sql.functions import *
+from pyspark.sql.window import Window
+
+
+
+
+def load_kyc_data(spark: SparkSession, path: str) -> DataFrame:
+    df = (
+        spark.read
+        .option("header", True)
+        .option("inferSchema", True)
+        .csv(path)
+    )
+
+    df = df.withColumn("onboarding_date", to_date(col("onboarding_date")))
+
+    return df
+
+
+def remove_invalid_emails(df: DataFrame) -> DataFrame:
+    email_pattern = r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"
+
+    df=df.withColumn('email',trim(col('email')))
+
+    return (df.filter(
+        (col("email").isNotNull())
+        & (col("email") != "")
+        & trim(col("email")).rlike(email_pattern)))
+    
+
+
+def filter_review_customers(
+    df: DataFrame,
+    min_score: int,
+    max_score: int
+) -> DataFrame:
+
+    return df.filter(
+        col("risk_score").between(min_score, max_score)
+        & col("kyc_status").isin("PENDING", "REVIEW")
+    )
+
+
+def risk_score_statistics(df: DataFrame) -> dict:
+    result = (
+        df.filter(col("risk_score").isNotNull())
+        .agg(
+            min(col("risk_score")).alias("min_score"),
+            max(col("risk_score")).alias("max_score"),
+            avg(col("risk_score")).alias("avg_score"),
+            count(col("risk_score")).alias("total_customers")
+        )
+        .collect()[0]
+    )
+
+    return {
+        "min_score": result["min_score"],
+        "max_score": result["max_score"],
+        "avg_score": result["avg_score"],
+        "total_customers": result["total_customers"]
+    }
+
+
+def city_highest_average_risk(df: DataFrame) -> tuple:
+    result = (
+        df.filter(
+            col("city").isNotNull() &
+            col("risk_score").isNotNull()
+        )
+        .groupBy("city")
+        .agg(avg(col("risk_score")).alias("avg_score"))
+        .orderBy(
+            col("avg_score").desc(),
+            col("city").asc()
+        )
+        .first()
+    )
+
+    if result is None:
+        return ("", 0.0)
+
+    return (result["city"], float(result["avg_score"]))
