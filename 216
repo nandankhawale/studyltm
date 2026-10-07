@@ -1,0 +1,43 @@
+from typing import List,Tuple
+from pyspark.sql import SparkSession,DataFrame
+from pyspark.sql.functions import *
+from pyspark.sql.types import *
+from pyspark.sql.window import Window
+
+
+def load_inline_data(spark:SparkSession):
+    data = [
+        ("O1001", "PartnerA", "2025-12-01 10:00:00", "2025-12-01 12:00:00", "Traffic"),
+        ("O1002", "PartnerA", "2025-12-01 09:00:00", "2025-12-01 10:30:00", "Traffic"),
+        ("O1003", "PartnerB", "2025-12-02 14:00:00", "2025-12-02 18:00:00", "Weather"),
+        ("O1004", "PartnerB", "2025-12-02 08:00:00", "2025-12-02 07:00:00", "Restaurant"),
+        ("O1005", "PartnerC", "2025-12-03 11:00:00", "2025-12-03 13:00:00", "Restaurant"),
+        ("O1006", "PartnerC", "2025-12-03 16:00:00", "2025-12-03 20:00:00", "Traffic"),
+    ]
+    schema=['order_id','partner','expected_delivery',
+            'actual_delivery','delay_reason']
+
+    df=spark.createDataFrame(data,schema)
+    return df
+
+def compute_delay(df:DataFrame):
+    df=(df.withColumn('delay_hours',(unix_timestamp(col('actual_delivery'))-
+        unix_timestamp(col('expected_delivery')))/3600))
+
+
+    df=(df.withColumn('delay_hours',when(col('delay_hours')>0,col('delay_hours')).
+                      otherwise(0.0)))
+    return df
+
+def get_delayed_orders(df:DataFrame,threshold:float)->DataFrame:
+    return df.filter(col('delay_hours')>threshold)
+
+def most_delayed_partner(df:DataFrame):
+    df=df.groupBy('partner').agg(sum(col('delay_hours')).alias('total_delay')).orderBy(col('total_delay').desc()).limit(1)
+    return df
+
+def most_common_delay_reason(df:DataFrame):
+    df=(df.groupBy('delay_reason').agg(avg(col('delay_hours')).alias('avg_delay'))
+        .orderBy(col('avg_delay').desc()).limit(1))
+    return df.select('delay_reason','avg_delay')
+    
