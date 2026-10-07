@@ -1,0 +1,28 @@
+from typing import List,Tuple
+from pyspark.sql import SparkSession,DataFrame
+from pyspark.sql.functions import *
+from pyspark.sql.types import *
+from pyspark.sql.window import Window
+
+def load_rides_csv(spark:SparkSession,path:str):
+    df=spark.read.csv(path,header=True,inferSchema=True)
+    return df
+
+def find_loyal_customers(df:DataFrame,n:int):
+    df=df.groupBy('CustomerID').agg(count(col('RideID')).alias('total_count'))
+    df=df.filter(col('total_count')>=n)
+    return df.select('CustomerID')
+
+def apply_discounts(df:DataFrame,loyal_customers:DataFrame):
+    df2=loyal_customers.withColumn('is_loyal',lit(True))
+    joined_df=df.join(df2,on='CustomerID',how='left')
+    joined_df=joined_df.withColumn('discount',when(col("is_loyal")==True,0.10).otherwise(0.07))
+    return joined_df
+
+def top_three_longest_trips(df:DataFrame)->DataFrame:
+    df=df.select('RideId','source','destination','distance').orderBy(col('distance').desc()).limit(3)
+    return df
+
+def get_top_earners(df:DataFrame):
+    df=df.groupBy('DriverID').agg(sum(col('earnings')).alias('total_earnings')).limit(3)
+    return df
