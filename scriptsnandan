@@ -1,0 +1,259 @@
+# Flight Delay and Airport Operations – Pipeline, Validation and Dashboard Presentation
+
+## 1. Transition from the Gold Layer
+
+"Thank you. So, as we have seen, the Gold Layer contains our dimension tables, fact tables and daily KPI mart, which are prepared for business reporting.
+
+Now, I'll continue by explaining how we orchestrate the complete pipeline using Databricks Workflows, how we validate the pipeline outputs, and finally, how we present the results through our Flight Operations Command Center dashboard."
+
+## 2. Databricks Job – Pipeline Orchestration
+
+"To automate the complete data processing flow, we created a Databricks Job named **capstone-03-flight_delay**.
+
+Instead of manually running each notebook one by one, we use this Job to execute the different stages in the correct order.
+
+Our workflow contains six tasks.
+
+The first task is **bronze_adls_autoloader**. This task ingests the flight schedule, flight movement and weather files from Azure Data Lake Storage into the Bronze Layer using Auto Loader.
+
+The second task is **bronze_azure_sql**. This task handles the reference data ingestion from Azure SQL, including aircraft, airline and airport master data.
+
+These first two tasks are independent, so they can run in parallel. This helps us avoid waiting for one ingestion process to finish before starting the other.
+
+Once both ingestion tasks are completed, the third task, **data_profile**, runs. This task profiles the ingested data and helps us understand the data before transformation.
+
+After profiling, the fourth task, **silver_transform**, executes. It performs the cleaning, validation, deduplication and quality checks that we discussed in the Silver Layer.
+
+Next, the fifth task, **gold_build**, creates our Gold dimensions, fact tables and KPI mart.
+
+Finally, the sixth task, **validate**, runs our pipeline validation notebook. It checks whether the data has moved correctly through the different layers and whether the final Gold outputs are consistent.
+
+So, the overall execution order is:
+
+ADLS and Azure SQL ingestion → Data Profiling → Silver Transformation → Gold Build → Final Validation.
+
+We have configured task dependencies so that each stage starts only after its required previous stage has completed successfully.
+
+This workflow is represented as a DAG, which stands for Directed Acyclic Graph. In simple terms, it shows the tasks and the dependencies between them.
+
+### File Arrival Trigger
+
+We have also configured a File Arrival trigger for the Job.
+
+This means that when a new file arrives in the configured Unity Catalog Volume location, the trigger can start the Databricks Job automatically.
+
+One important distinction is that the File Arrival trigger starts the workflow, whereas Auto Loader is responsible for discovering and ingesting the files.
+
+We are also using Auto Loader with the `availableNow` trigger. It processes the files currently available and then stops. So, our solution is incremental file ingestion using batch-oriented processing, rather than continuous real-time streaming.
+
+### Retry and Notifications
+
+We have configured retry settings for task failures.
+
+The retry delay is two minutes, with a maximum of three retries. This allows Databricks to automatically attempt the task again if it encounters a failure.
+
+We have also configured notifications for Job start, successful completion and failure.
+
+These settings help us monitor execution and identify problems without constantly checking the Job manually.
+
+We can also use the Job run history to review previous executions, check which tasks succeeded or failed, and investigate errors.
+
+So, the main benefit of Databricks Workflows is that it automates our complete pipeline, maintains the correct execution order and makes the process easier to monitor and rerun."
+
+## 3. Pipeline Validation Notebook
+
+"After the Gold Layer is built, we execute our final pipeline validation notebook.
+
+The purpose of this notebook is to verify that the complete pipeline has executed correctly and that the output data is consistent.
+
+I'll explain the main checks performed by our code.
+
+First, the notebook defines the catalog and schema locations for our Bronze, Silver and Gold tables.
+
+It also uses helper functions.
+
+The `count_rows()` function counts the records in a table, while the `add_result()` function stores the outcome of each validation check as a pass or fail.
+
+### Bronze Validation
+
+First, the notebook checks whether all six Bronze tables exist and contain records.
+
+This helps us confirm that the source data has been successfully ingested.
+
+### Silver Reconciliation
+
+Next, we perform an important reconciliation check for flight schedules.
+
+We compare the number of records in the Bronze flight schedules with the accepted and rejected records in Silver.
+
+The expected condition is:
+
+Bronze schedule records = Accepted Silver schedule records + Rejected Silver schedule records.
+
+This check helps confirm that records have been accounted for during Silver processing and have not disappeared unexpectedly.
+
+### Gold Validation
+
+Next, the notebook checks whether all nine Gold tables exist and contain records.
+
+These include our four dimension tables, four fact tables and the daily KPI mart.
+
+This confirms that the Gold Layer has been successfully created.
+
+### KPI Validation
+
+We also compare the flight and cancellation totals in the `fact_flight_activity` table with the corresponding totals in `mart_flight_daily`.
+
+The purpose is to make sure that the aggregated KPI mart agrees with the underlying flight activity data.
+
+### Final Validation Report
+
+Finally, the notebook collects all the validation results and displays them in a report.
+
+It shows how many checks passed and how many failed.
+
+This gives us a final view of the pipeline's data quality and consistency.
+
+So, the Gold notebook creates the business-ready tables, while this validation notebook checks whether the outputs are complete and consistent.
+
+This is important because we don't want to publish dashboard results without checking the underlying data."
+
+## 4. Flight Operations Command Center – Dashboard
+
+"Now that the pipeline and validation are complete, I'll move to the reporting part of our project.
+
+We created an AI/BI dashboard in Databricks called **Flight Operations Command Center**.
+
+The purpose of this dashboard is to help users understand flight operations through key performance indicators, charts and summary tables.
+
+The dashboard uses our Gold Layer tables as its data source.
+
+We have organized it into four pages:
+
+1. Executive Overview
+2. Airport and Airline Performance
+3. Fleet and Schedule
+4. Delays, Cancellations and Weather
+
+We also have global filters for Date Range, Airport, Airline and Flight Status. These filters help users focus on the information they want to analyse.
+
+### Page 1 – Executive Overview
+
+The first page is the Executive Overview.
+
+This page provides a high-level summary of flight operations.
+
+At the top, we have KPI cards showing important metrics such as:
+
+- Total Flights – 11,097
+- Cancelled Flights – 2,754
+- Departed Flights – 160
+- Cancellation Rate – approximately 24.82%
+- Average Departure Delay
+
+Below the KPI cards, we have several visualizations.
+
+The **Daily Flight Operations Trend** shows how flight activity changes over time.
+
+The **Flight Status Distribution** shows the distribution of flights across different statuses.
+
+The **Top Origin Airports by Flight Volume** identifies the airports with the highest number of scheduled flights.
+
+We also have a **Daily Cancellation Rate** chart, which helps us observe how cancellation rates change across dates.
+
+So, this page is mainly designed for management users who want a quick overview of the overall flight operations situation.
+
+### Page 2 – Airport and Airline Performance
+
+The second page focuses on airline and airport performance.
+
+The **Airline Flight Volume vs Cancellations** chart allows us to compare flight volumes and cancellations across airlines.
+
+We also have an **Airline Scorecard**, which provides details such as airline name, total flights, cancelled flights and cancellation percentage.
+
+The **Airport Flight Activity** chart shows flight activity by origin airport.
+
+Another visualization is the **Movement Event Distribution**.
+
+It displays different movement events, such as departed, arrived, gate change and boarding started.
+
+These visualizations help us understand how activity and cancellations are distributed across airlines and airports.
+
+### Page 3 – Fleet and Schedule
+
+The third page focuses on aircraft fleet information and scheduled flights.
+
+At the top, we have KPI cards showing:
+
+- Aircraft in Fleet – 146
+- Total Seat Capacity – approximately 24.47K
+- Scheduled Flights – approximately 11.1K
+- Average Route Distance – approximately 934.95 kilometres
+
+Below these KPIs, we have visualizations such as **Aircraft by Manufacturer**, which shows the distribution of aircraft manufacturers.
+
+The **Fleet Status** chart provides an overview of aircraft status.
+
+The **Scheduled Departures per Day** chart shows the scheduled departure pattern over time.
+
+We also have **Scheduled Flights by Status**, which helps us understand the distribution of scheduled flight statuses.
+
+The **Seat Capacity by Aircraft Type** chart compares aircraft categories such as Basic, Premium and Standard.
+
+Finally, **Aircraft by Engine Type** provides a breakdown of the fleet based on engine type.
+
+This page helps users understand fleet composition, aircraft capacity and scheduled operations.
+
+### Page 4 – Delays, Cancellations and Weather
+
+The fourth page focuses on cancellations, delay reasons and weather observations.
+
+The **Cancelled Flights per Day** chart shows the daily cancellation trend.
+
+The **Cancellation Rate by Origin Airport** helps identify airports with higher cancellation percentages.
+
+We also have **Delay Reasons by Airport**, which displays recorded reasons such as ATC, Technical, Weather and None.
+
+The **Weather Condition Distribution** shows the distribution of weather conditions, including Wind, Clear, Rain and Fog.
+
+Finally, the **Weather Observations by Airport** visualization provides information such as observation count, average visibility, average wind speed and precipitation.
+
+By bringing these charts together, users can explore flight cancellations, recorded delay reasons and weather conditions in the same dashboard.
+
+However, we should remember that observing weather and cancellation patterns together does not automatically prove that weather caused a cancellation. It helps identify patterns that may need further investigation.
+
+## 5. Important Data Observations and Limitations
+
+"While presenting the dashboard, I would also like to highlight a few important observations from our data.
+
+Although we have 11,097 flight records, only 160 records have a recorded actual departure timestamp.
+
+Also, the delay data contains unusual values, including 159 values of exactly 15 minutes and one negative value of -778 minutes.
+
+Because of these data-quality issues, the average delay and punctuality figures should be interpreted carefully. They need further investigation before being treated as reliable operational performance measures.
+
+Similarly, our weather observations cover only July 1 and July 2, 2026, so they represent a limited observation period.
+
+These limitations are important because a dashboard should not only display numbers; we should also understand the quality and coverage of the data behind those numbers."
+
+## 6. Dashboard Publishing and Final Handover
+
+"Once the dashboard is ready, we can publish it so that the intended users can view it.
+
+We can share the published dashboard with the relevant stakeholders and grant them viewing access.
+
+The dashboard provides a business-friendly view of the data, while the underlying Gold tables remain available for deeper analysis through Databricks SQL.
+
+We have also prepared a Genie space with SQL-grounded questions so users can explore the flight operations data using natural-language questions. Its response validation is still pending, so we treat it as an additional exploration capability rather than a fully validated production feature.
+
+To summarize my part:
+
+We use Databricks Workflows to orchestrate the complete pipeline, from ingestion through Silver and Gold processing.
+
+We use the validation notebook to check table availability, record reconciliation and KPI consistency.
+
+Finally, we use the Flight Operations Command Center dashboard to present the processed data through KPIs, charts and operational summaries.
+
+Together, these components make our solution an end-to-end data analytics pipeline, from source ingestion to business reporting.
+
+Thank you."
